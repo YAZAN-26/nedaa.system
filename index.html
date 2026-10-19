@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نِداء | لوحة تحكم الكاشير</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <style> 
+        body { font-family: 'Tajawal', sans-serif; }
+        .kanban-card { transition: all 0.2s ease-in-out; }
+        .kanban-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- الهيدر الرئيسي لوحة التحكم -->
+    <header id="main-header" class="bg-gray-900/90 backdrop-blur-md border-b border-gray-800 p-4 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            
+            <div class="flex items-center gap-3">
+                <div id="logo-wrapper" class="w-10 h-10 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center overflow-hidden shadow-inner">
+                    <span id="logo-icon-fallback" class="text-xl">☕</span>
+                    <img id="cafe-logo" src="" class="w-full h-full object-cover hidden" alt="Logo">
+                </div>
+                <div>
+                    <h1 class="text-lg font-black flex items-center gap-2 text-white">
+                        نِداء <span class="text-[10px] bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-bold">Nedaa SaaS</span>
+                    </h1>
+                    <p id="branch-title" class="text-xs text-gray-400">جاري تحميل بيانات الفرع...</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- عداد الطلبات المجانية -->
+                <div class="bg-amber-950/60 text-amber-400 border border-amber-500/30 px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    الطلبات المجانية: <span id="free-count" class="text-white font-black text-sm">--</span>
+                </div>
+
+                <!-- زر الدعم الفني -->
+                <button onclick="toggleSupportModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-bold px-3.5 py-2 rounded-xl border border-gray-700 transition flex items-center gap-1.5">
+                    <span>📩</span> الدعم الفني
+                </button>
+
+                <!-- تسجيل الخروج -->
+                <button onclick="logout()" class="bg-red-950/40 hover:bg-red-900/60 text-red-400 text-xs font-bold px-3.5 py-2 rounded-xl border border-red-500/20 transition">
+                    خروج
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6 flex-1">
+
+        <!-- قسم إدخال طلب جديد -->
+        <section class="bg-gray-900/80 border border-gray-800 rounded-3xl p-5 shadow-xl">
+            <h2 class="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-3">إصدار طلب جديد للكاشير</h2>
+            <form id="add-order-form" class="flex flex-col sm:flex-row gap-3">
+                <input type="text" id="order-number" placeholder="أدخل رقم الطلب (مثلاً: 45)" required 
+                       class="flex-1 px-5 py-3 bg-gray-950 border border-gray-800 rounded-2xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm text-white placeholder-gray-600 transition">
+                <button type="submit" id="submit-order-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3 rounded-2xl shadow-lg shadow-indigo-950/50 transition text-sm flex items-center justify-center gap-2 active:scale-95">
+                    <span>+</span> إرسال الطلب
+                </button>
+            </form>
+        </section>
+
+        <!-- أعمدة المتابعة اللحظية (Kanban Board) -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- 1. يتم التحضير -->
+            <div class="bg-gray-900/50 border border-amber-500/20 rounded-3xl p-5 flex flex-col">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-amber-500/20">
+                    <h3 class="font-bold text-amber-400 text-sm flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> ⏳ يتم التحضير
+                    </h3>
+                    <span id="count-preparing" class="bg-amber-950/80 border border-amber-500/30 text-amber-300 text-xs font-extrabold px-3 py-1 rounded-full">0</span>
+                </div>
+                <div id="col-preparing" class="space-y-3 flex-1 min-h-[300px]"></div>
+            </div>
+
+            <!-- 2. جاهز للاستلام -->
+            <div class="bg-gray-900/50 border border-emerald-500/20 rounded-3xl p-5 flex flex-col">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-emerald-500/20">
+                    <h3 class="font-bold text-emerald-400 text-sm flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> 🔔 جاهز للاستلام
+                    </h3>
+                    <span id="count-ready" class="bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-xs font-extrabold px-3 py-1 rounded-full">0</span>
+                </div>
+                <div id="col-ready" class="space-y-3 flex-1 min-h-[300px]"></div>
+            </div>
+
+            <!-- 3. تم الاستلام -->
+            <div class="bg-gray-900/50 border border-gray-800 rounded-3xl p-5 flex flex-col">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-800">
+                    <h3 class="font-bold text-gray-400 text-sm flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-gray-500"></span> ✅ تم الاستلام
+                    </h3>
+                    <span id="count-completed" class="bg-gray-800 text-gray-300 text-xs font-extrabold px-3 py-1 rounded-full">0</span>
+                </div>
+                <div id="col-completed" class="space-y-3 flex-1 min-h-[300px]"></div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Modal الدعم الفني -->
+    <div id="support-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
+                <h3 class="font-bold text-white text-base">📩 الدعم الفني (Nedaa.Help)</h3>
+                <button onclick="toggleSupportModal()" class="text-gray-500 hover:text-white text-xl font-bold">&times;</button>
+            </div>
+            <form id="support-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">عنوان التذكرة</label>
+                    <input type="text" id="ticket-subject" required placeholder="مثلاً: استفسار عن خطة التجديد" class="w-full px-4 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">تفاصيل المشكلة / الطلب</label>
+                    <textarea id="ticket-message" rows="4" required placeholder="اكتب الاستفسار هنا..." class="w-full px-4 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-sm text-white outline-none focus:border-indigo-500"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg shadow-indigo-950">
+                    إرسال التذكرة
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- الفوتر -->
+    <footer class="w-full text-center py-4 text-xs text-gray-600 border-t border-gray-900">
+        منظومة إدارة الطلبات • <span class="font-bold text-indigo-400">Nedaa SaaS System</span>
+    </footer>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        const branchId = localStorage.getItem('branch_id');
+
+        if (!branchId) {
+            window.location.href = "login.html";
+        }
+
+        async function fetchOrders() {
+            try {
+                const response = await fetch(`${API_URL}/orders/${branchId}`);
+                if (!response.ok) {
+                    if (response.status === 403 || response.status === 401) {
+                        alert("انتهت صلاحية الحساب أو تم إيقاف الاشتراك.");
+                        logout();
+                    }
+                    return;
+                }
+                const data = await response.json();
+                
+                document.getElementById('branch-title').innerText = `${data.cafe_name} • ${data.branch_name}`;
+                document.getElementById('free-count').innerText = data.free_orders_left;
+                
+                if (data.logo_url) {
+                    const logoImg = document.getElementById('cafe-logo');
+                    logoImg.src = data.logo_url;
+                    logoImg.classList.remove('hidden');
+                    document.getElementById('logo-icon-fallback').classList.add('hidden');
+                }
+
+                renderOrders(data.orders);
+            } catch (err) {
+                console.error("خطأ الاتصال بالباك إند:", err);
+            }
+        }
+
+        function renderOrders(orders) {
+            const colPrep = document.getElementById('col-preparing');
+            const colReady = document.getElementById('col-ready');
+            const colComp = document.getElementById('col-completed');
+
+            colPrep.innerHTML = ''; colReady.innerHTML = ''; colComp.innerHTML = '';
+            let pCount = 0, rCount = 0, cCount = 0;
+
+            orders.forEach(o => {
+                const card = document.createElement('div');
+                card.className = "kanban-card bg-gray-950 border border-gray-800 p-4 rounded-2xl flex justify-between items-center shadow-md";
+
+                if (o.status === 'يتم التحضير') {
+                    pCount++;
+                    card.innerHTML = `
+                        <div>
+                            <span class="text-[10px] text-gray-500 font-bold block">طلب رقم</span>
+                            <span class="text-xl font-black text-white">#${o.order_number}</span>
+                        </div>
+                        <button onclick="updateStatus(${o.id}, 'جاهز للاستلام')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-lg shadow-emerald-950">
+                            إرسال تنبيه 🔔
+                        </button>
+                    `;
+                    colPrep.appendChild(card);
+                } else if (o.status === 'جاهز للاستلام') {
+                    rCount++;
+                    card.innerHTML = `
+                        <div>
+                            <span class="text-[10px] text-emerald-400 font-bold block">جاهز</span>
+                            <span class="text-xl font-black text-emerald-400">#${o.order_number}</span>
+                        </div>
+                        <button onclick="updateStatus(${o.id}, 'تم الاستلام')" class="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-bold px-3.5 py-2 rounded-xl border border-gray-700 transition">
+                            تم التسليم ✅
+                        </button>
+                    `;
+                    colReady.appendChild(card);
+                } else if (o.status === 'تم الاستلام') {
+                    cCount++;
+                    card.innerHTML = `
+                        <div>
+                            <span class="text-[10px] text-gray-600 font-bold block">مكتمل</span>
+                            <span class="text-base font-bold text-gray-600 line-through">#${o.order_number}</span>
+                        </div>
+                        <span class="text-[10px] bg-gray-900 text-gray-500 px-2.5 py-1 rounded-lg border border-gray-800">منتهي</span>
+                    `;
+                    colComp.appendChild(card);
+                }
+            });
+
+            document.getElementById('count-preparing').innerText = pCount;
+            document.getElementById('count-ready').innerText = rCount;
+            document.getElementById('count-completed').innerText = cCount;
+        }
+
+        async function updateStatus(orderId, newStatus) {
+            try {
+                await fetch(`${API_URL}/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                fetchOrders();
+            } catch (err) {
+                console.error("خطأ التحديث:", err);
+            }
+        }
+
+        document.getElementById('add-order-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('order-number');
+            if (input.value) {
+                try {
+                    const res = await fetch(`${API_URL}/orders/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            branch_id: parseInt(branchId),
+                            order_number: input.value
+                        })
+                    });
+                    
+                    const resData = await res.json();
+                    if (!res.ok) {
+                        alert("⚠️ " + (resData.detail || "تعذر إضافة الطلب"));
+                        return;
+                    }
+
+                    input.value = '';
+                    fetchOrders();
+                } catch (err) {
+                    alert("❌ فشل الاتصال بالسيرفر");
+                }
+            }
+        });
+
+        function toggleSupportModal() {
+            document.getElementById('support-modal').classList.toggle('hidden');
+        }
+
+        document.getElementById('support-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const subject = document.getElementById('ticket-subject').value;
+            const message = document.getElementById('ticket-message').value;
+
+            try {
+                const res = await fetch(`${API_URL}/support/tickets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        branch_id: parseInt(branchId),
+                        subject: subject,
+                        message: message
+                    })
+                });
+                const data = await res.json();
+                alert("✅ " + data.message);
+                toggleSupportModal();
+                document.getElementById('ticket-subject').value = '';
+                document.getElementById('ticket-message').value = '';
+            } catch (err) {
+                alert("❌ تعذر إرسال التذكرة");
+            }
+        });
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "login.html";
+        }
+
+        fetchOrders();
+        setInterval(fetchOrders, 2500);
+    </script>
+</body>
+</html>

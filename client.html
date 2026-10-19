@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>نِداء | حالة الطلب</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Tajawal', sans-serif; }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .pulse-animation { animation: pulse-ring 2s infinite ease-in-out; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col justify-between items-center p-4 selection:bg-indigo-500 selection:text-white">
+
+    <!-- الهيدر الرئيسي للمقهى -->
+    <header class="w-full max-w-sm text-center pt-4 flex flex-col items-center">
+        <div id="logo-container" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-indigo-500/40 p-1 shadow-lg mb-3 flex items-center justify-center overflow-hidden">
+            <span id="logo-fallback" class="text-2xl">☕</span>
+            <img id="cafe-logo" src="" alt="Logo" class="w-full h-full object-cover rounded-full hidden">
+        </div>
+        <h1 id="cafe-name" class="text-xl font-black text-white tracking-wide">جاري التحميل...</h1>
+        <p id="branch-name" class="text-xs text-gray-400 mt-0.5">نظام نِداء الذكي</p>
+    </header>
+
+    <!-- الكارت الرئيسي لحالة الطلب -->
+    <main class="w-full max-w-sm my-auto py-6">
+        <div class="bg-gray-900/90 backdrop-blur-xl border border-gray-800 rounded-3xl p-6 shadow-2xl text-center relative overflow-hidden">
+            
+            <!-- الشريط العلوي المصغر -->
+            <div class="inline-flex items-center gap-2 bg-gray-800/80 px-3 py-1 rounded-full text-[11px] text-gray-300 font-medium mb-4 border border-gray-700/50">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
+                متابعة فورية للطلب
+            </div>
+
+            <!-- رقم الطلب -->
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">رقم الطلب الخاص بك</p>
+            <h2 id="order-num" class="text-5xl font-black text-white my-2 tracking-tight">#--</h2>
+
+            <!-- الأيقونة التفاعلية -->
+            <div id="icon-bg" class="w-24 h-24 mx-auto my-6 rounded-3xl bg-indigo-950/60 border border-indigo-500/30 flex items-center justify-center text-4xl shadow-inner pulse-animation transition-all duration-500">
+                <span id="status-icon">⏳</span>
+            </div>
+
+            <!-- النص والحالة -->
+            <h3 id="status-text" class="text-xl font-bold text-indigo-400 mb-2">جاري البحث عن الطلب...</h3>
+            <p id="subtext" class="text-gray-400 text-xs leading-relaxed max-w-[250px] mx-auto">تفضل بالاستراحة، وسنقوم بتنبيهك فور جاهزية المشروب.</p>
+
+            <!-- زر تفعيل الصوت والاهتزاز -->
+            <button onclick="enableAudioAndVibration()" id="sound-btn" class="mt-6 w-full bg-gray-800 hover:bg-gray-700 text-indigo-300 font-bold py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 border border-indigo-500/20 transition active:scale-95">
+                <span>🔊</span> اضغط هنا لتفعيل تنبيه الصوت والاهتزاز
+            </button>
+        </div>
+    </main>
+
+    <!-- الفوتر -->
+    <footer class="w-full max-w-sm text-center py-2 text-[10px] text-gray-500">
+        مدعوم بواسطة <span class="font-bold text-indigo-400">Nedaa System</span>
+    </footer>
+
+    <!-- صوت التنبيه -->
+    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        
+        // جلب رقم الفرع من الرابط (مثال: client.html?branch=1) أو الافتراضي 1
+        const urlParams = new URLSearchParams(window.location.search);
+        const branchId = urlParams.get('branch') || localStorage.getItem('branch_id') || 1;
+
+        let lastStatus = "";
+        let audioEnabled = false;
+
+        function enableAudioAndVibration() {
+            const sound = document.getElementById('alert-sound');
+            sound.play().then(() => {
+                sound.pause();
+                sound.currentTime = 0;
+                audioEnabled = true;
+                const btn = document.getElementById('sound-btn');
+                btn.innerHTML = "<span>✅</span> التنبيه الصوتي فعال بنجاح";
+                btn.className = "mt-6 w-full bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 font-bold py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-2";
+            }).catch(e => console.log("خطأ تشغيل الصوت:", e));
+        }
+
+        async function checkOrderStatus() {
+            try {
+                const res = await fetch(`${API_URL}/orders/${branchId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                
+                // تحديث بيانات المقهى الهيدر
+                if (data.cafe_name) document.getElementById('cafe-name').innerText = data.cafe_name;
+                if (data.branch_name) document.getElementById('branch-name').innerText = data.branch_name;
+                
+                if (data.logo_url) {
+                    const img = document.getElementById('cafe-logo');
+                    img.src = data.logo_url;
+                    img.classList.remove('hidden');
+                    document.getElementById('logo-fallback').classList.add('hidden');
+                }
+
+                const orders = data.orders || [];
+                if (orders.length > 0) {
+                    const latestOrder = orders[orders.length - 1];
+                    document.getElementById('order-num').innerText = `#${latestOrder.order_number}`;
+
+                    if (latestOrder.status !== lastStatus) {
+                        lastStatus = latestOrder.status;
+                        updateUI(latestOrder.status);
+                    }
+                }
+            } catch (err) {
+                console.error("خطأ الاتصال:", err);
+            }
+        }
+
+        function updateUI(status) {
+            const iconBg = document.getElementById('icon-bg');
+            const statusIcon = document.getElementById('status-icon');
+            const statusText = document.getElementById('status-text');
+            const subtext = document.getElementById('subtext');
+
+            if (status === 'جاهز للاستلام') {
+                iconBg.className = "w-24 h-24 mx-auto my-6 rounded-3xl bg-emerald-950/80 border border-emerald-500/50 flex items-center justify-center text-4xl shadow-lg shadow-emerald-900/30 pulse-animation";
+                statusIcon.innerText = "🎉";
+                statusText.innerText = "طلبك جاهز للاستلام!";
+                statusText.className = "text-xl font-black text-emerald-400 mb-2 animate-bounce";
+                subtext.innerText = "تفضل إلى الكاونتر واستلم طلبك الآن. بالعافية!";
+
+                // اهتزاز وتنبيه صوتي
+                if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 600]);
+                if (audioEnabled) {
+                    const sound = document.getElementById('alert-sound');
+                    sound.currentTime = 0;
+                    sound.play().catch(e => console.log(e));
+                }
+            } else if (status === 'تم الاستلام') {
+                iconBg.className = "w-24 h-24 mx-auto my-6 rounded-3xl bg-gray-800 border border-gray-700 flex items-center justify-center text-4xl";
+                statusIcon.innerText = "✅";
+                statusText.innerText = "تم استلام الطلب";
+                statusText.className = "text-xl font-bold text-gray-300 mb-2";
+                subtext.innerText = "نتمنى لك يوماً سعيداً وقهوة ممتعة!";
+            } else {
+                iconBg.className = "w-24 h-24 mx-auto my-6 rounded-3xl bg-amber-950/60 border border-amber-500/30 flex items-center justify-center text-4xl pulse-animation";
+                statusIcon.innerText = "⏳";
+                statusText.innerText = "جاري تحضير طلبك...";
+                statusText.className = "text-xl font-bold text-amber-400 mb-2";
+                subtext.innerText = "تفضل بالاستراحة، وسنقوم بتنبيهك فور تجهيز المشروب.";
+            }
+        }
+
+        checkOrderStatus();
+        setInterval(checkOrderStatus, 2500);
+    </script>
+</body>
+</html>
